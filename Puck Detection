@@ -1,0 +1,137 @@
+# Python code for Multiple Color Detection
+
+
+import numpy as np
+import cv2
+import os
+import sys
+import RPi.GPIO as GPIO
+import time
+
+time.sleep(5)
+GPIO.cleanup()
+
+GPIO.setmode(GPIO.BCM)
+SWAP_PIN = 17
+QUIT_PIN = 27
+
+GPIO.setup(SWAP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(QUIT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+cams = [0, 1]
+current_cam = 0
+
+# Capturing video through webcam
+webcam = cv2.VideoCapture(cams[current_cam])
+webcam.set(3, 640)
+webcam.set(4, 480)
+
+# Start a while loop
+while (1):
+
+    # Reading the video from the
+    # webcam in image frames
+    _, imageFrame = webcam.read()
+
+    # Convert the imageFrame in
+    # BGR(RGB color space) to
+    # HSV(hue-saturation-value)
+    # color space
+    hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
+    
+
+    # Set range for red color and
+    # define mask
+    red_lower = np.array([136, 87, 111], np.uint8)
+    red_upper = np.array([180, 255, 255], np.uint8)
+    red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
+
+    # Set range for blue color and
+    # define mask
+    blue_lower = np.array([98, 170, 50], np.uint8)
+    blue_upper = np.array([139, 255, 255], np.uint8)
+    blue_mask = cv2.inRange(hsvFrame, blue_lower, blue_upper)
+
+    # Morphological Transform, Dilation
+    # for each color and bitwise_and operator
+    # between imageFrame and mask determines
+    # to detect only that particular color
+    kernel = np.ones((5, 5), "uint8")
+
+    # For red color
+    red_mask = cv2.dilate(red_mask, kernel)
+    res_red = cv2.bitwise_and(imageFrame, imageFrame,
+                              mask=red_mask)
+
+
+    # For blue color
+    blue_mask = cv2.dilate(blue_mask, kernel)
+    res_blue = cv2.bitwise_and(imageFrame, imageFrame,
+                               mask=blue_mask)
+
+    # Creating contour to track red color
+    contours, hierarchy = cv2.findContours(red_mask,
+                                           cv2.RETR_TREE,
+                                           cv2.CHAIN_APPROX_SIMPLE)
+
+    for pic, contour in enumerate(contours):
+        area = cv2.contourArea(contour)
+        if (area > 2000):
+            x, y, w, h = cv2.boundingRect(contour)
+            imageFrame = cv2.rectangle(imageFrame, (x, y),
+                                       (x + w, y + h),
+                                       (0, 0, 255), 2)
+            if 56 < x < 218:
+                print("RED 1")
+            elif 220 < x < 406:
+                print("RED 2")
+            elif 410 < x < 490:
+                print("RED 3")
+            elif 494 < x < 534:
+                print("RED 4")
+
+            cv2.putText(imageFrame, "Red Weight", (x, y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                        (0, 0, 255))
+
+            # Creating contour to track blue color
+    contours, hierarchy = cv2.findContours(blue_mask,
+                                           cv2.RETR_TREE,
+                                           cv2.CHAIN_APPROX_SIMPLE)
+    for pic, contour in enumerate(contours):
+        area = cv2.contourArea(contour)
+        if (area > 2000):
+            x, y, w, h = cv2.boundingRect(contour)
+            imageFrame = cv2.rectangle(imageFrame, (x, y),
+                                       (x + w, y + h),
+                                       (255, 0, 0), 2)
+            if 56<x<218:
+                print("BLUE 1")
+            elif 220<x<406:
+                print("BLUE 2")
+            elif 410<x<490:
+                print("BLUE 3")
+            elif 494<x<534:
+                print("BLUE 4")
+
+
+            cv2.putText(imageFrame, "Blue Weight", (x, y),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1.0, (255, 0, 0))
+
+    # Program Termination and Swaps
+        
+
+    if GPIO.input(QUIT_PIN) == GPIO.LOW: #Quit
+        print("executing bunag")
+        break
+    elif GPIO.input(SWAP_PIN) == GPIO.LOW: #Swap Cameras
+        webcam.release()
+        current_cam = (current_cam + 1) % len(cams) #Cycle that ho jobari
+        webcam = cv2.VideoCapture(cams[current_cam])
+        print(f"Switched to camera {cams[current_cam]}")
+        time.sleep(0.3)
+webcam.release()
+GPIO.cleanup()
+cv2.destroyAllWindows() 
+print("End")
