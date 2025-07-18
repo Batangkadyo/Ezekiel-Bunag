@@ -1,0 +1,19 @@
+barray1 = [1,2,1,3]
+rarray1 = [1,2,2,3]
+
+totalb = 0
+totalr = 0
+
+for num in barray1:         #for loop adds all values of the blue array together
+    totalb += num
+print(totalb)
+for num in rarray1:         #for loop adds all values of the red array together
+    totalr += num
+print(totalr)
+
+if totalb > totalr:         #if blue scores higher than red
+    print("Blue is the new winner")
+elif totalr > totalb:       #if red scores higher than blue
+    print("Red is the new winner")
+elif totalb == totalr:      #if there is no distinct winner yet
+    print("No winner yet")
