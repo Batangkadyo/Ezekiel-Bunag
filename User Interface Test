@@ -1,0 +1,98 @@
+import RPi.GPIO as GPIO
+from time import sleep
+
+# Use BCM pin numbering
+GPIO.setmode(GPIO.BCM)
+
+# Reset flag
+reset_flag = False
+
+# Setup for Segments A-G (you will modify pin numbers)
+segment_pins = {
+    'A': 
+    'B': 
+    'C': 
+    'D': 
+    'E': 
+    'F': 
+    'G': 
+}
+
+segments = {}
+for seg, pin in segment_pins.items():
+    GPIO.setup(pin, GPIO.OUT)
+    segments[seg] = pin
+
+digit_to_segments = {
+    0: [1, 1, 1, 1, 1, 1, 0],
+    1: [0, 1, 1, 0, 0, 0, 0],
+    2: [1, 1, 0, 1, 1, 0, 1],
+    3: [1, 1, 1, 1, 0, 0, 1],
+    4: [0, 1, 1, 0, 0, 1, 1],
+    5: [1, 0, 1, 1, 0, 1, 1],
+    6: [1, 0, 1, 1, 1, 1, 1],
+    7: [1, 1, 1, 0, 0, 0, 0],
+    8: [1, 1, 1, 1, 1, 1, 1],
+    9: [1, 1, 1, 1, 0, 1, 1]
+}
+
+segments_order = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+
+def display_digit(digit):
+    pattern = digit_to_segments[digit]
+    for seg, bit in zip(segments_order, pattern):
+        GPIO.output(segments[seg], bit)
+
+# Display Enable Pins (you will modify these)
+enable_pin_numbers = [7, 8, 9, 10, 11, 12, 13, 18]
+for pin in enable_pin_numbers:
+    GPIO.setup(pin, GPIO.OUT)
+display_enable_pins = enable_pin_numbers
+
+def reset_handler(channel):
+    global reset_flag
+    reset_flag = True
+
+# Reset button pin (you will modify this too)
+reset_pin = 
+GPIO.setup(reset_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.add_event_detect(reset_pin, GPIO.FALLING, callback=reset_handler, bouncetime=200)
+
+team1_score = "11"
+team2_score = "34"
+team3_score = "00"
+team4_score = "55"
+
+score_str = team1_score + team2_score + team3_score + team4_score
+display_digits = [int(x) for x in score_str]
+
+digit_delay = 0.0005
+
+def multiplex_display(index, digit):
+    for pin in display_enable_pins:
+        GPIO.output(pin, 0)
+    display_digit(digit)
+    GPIO.output(display_enable_pins[index], 1)
+    sleep(digit_delay)
+    GPIO.output(display_enable_pins[index], 0)
+
+def multiplex_displays():
+    for i in range(len(display_enable_pins)):
+        if reset_flag:
+            return
+        multiplex_display(i, display_digits[i])
+
+def display_all_zeros():
+    global reset_flag
+    while reset_flag:
+        for i in range(len(display_enable_pins)):
+            multiplex_display(i, 0)
+
+try:
+    while True:
+        if reset_flag:
+            display_all_zeros()
+        else:
+            multiplex_displays()
+except KeyboardInterrupt:
+    GPIO.cleanup()
